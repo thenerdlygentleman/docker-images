@@ -1,0 +1,4 @@
+services:
+  mdbook:
+    build: mdbook
+    image: mdbook:0.1.0
