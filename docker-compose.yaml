@@ -2,3 +2,6 @@ services:
   mdbook:
     build: mdbook
     image: mdbook:0.1.0
+  emulation:
+    build: emulation
+    image: emulation:0.1.0
