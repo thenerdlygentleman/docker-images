@@ -1,16 +1,11 @@
 # Docker Images
 
-## Push to [Dockerhub](https://hub.docker.com/repositories/thenerdlygentleman)
+## Summary
 
-1. Create the repository on
-[Dockerhub](https://hub.docker.com/repositories/thenerdlygentleman).
-2. Tag the created image locally
+Variation of docker images, that can be used for CI or as development
+environments.
 
-   ```shell
-   docker image tag <image>:<tag> thenerdlygentleman/<image>:<tag>
-   ```
-3. Push the image.
+## Building
 
-   ```shell
-   docker push thenerdlygentleman/<image>:<tag>
-   ```
+The Docker images are build via **Github** action. A collaborator has to start
+the CI manually, by adding the desired tag name of the image.
