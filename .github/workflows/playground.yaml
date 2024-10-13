@@ -1,4 +1,4 @@
-name: DockerHub playground
+name: DockerHub playground PROD
 on:
   workflow_dispatch:
     inputs:
@@ -8,7 +8,7 @@ on:
         required: true
         type: string
 jobs:
-  docker:
+  playground:
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU

@@ -1,14 +1,7 @@
-name: DockerHub mdbook PROD
-on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Enter Tag name'
-        default: 'latest'
-        required: true
-        type: string
+name: DockerHub mdbook DEV
+on: push
 jobs:
-  mdbook:
+  mdbook-dev:
     runs-on: ubuntu-latest
     steps:
       - name: Set up QEMU
@@ -26,4 +19,4 @@ jobs:
           file: ./mdbook/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: thenerdlygentleman/mdbook:${{ github.event.inputs.tag }}
+          tags: thenerdlygentleman/mdbook:dev
