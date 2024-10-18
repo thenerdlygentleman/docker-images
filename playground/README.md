@@ -4,12 +4,6 @@
 
 Image that can be used for development.
 
-## Dependencies
-
-The image is using [Startship](https://starship.rs/), this means a
-[Nerd Font](https://www.nerdfonts.com/font-downloads) needs to be installed on
-the host machine.
-
 ## Software
 
 |**Software**|**Version**|**Installed**|
