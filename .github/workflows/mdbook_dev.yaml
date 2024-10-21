@@ -1,5 +1,9 @@
 name: DockerHub mdbook DEV
-on: push
+on:
+  push:
+    paths:
+      - .github/workflows/mdbook_dev.yaml
+      - mdbook/*
 jobs:
   mdbook-dev:
     runs-on: ubuntu-latest

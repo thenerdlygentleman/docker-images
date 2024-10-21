@@ -1,5 +1,9 @@
 name: DockerHub playground DEV
-on: push
+on:
+  push:
+    paths:
+      - .github/workflows/playground_dev.yaml
+      - playground/*
 jobs:
   playground-dev:
     runs-on: ubuntu-latest
