@@ -5,3 +5,6 @@ services:
   playground:
     build: playground
     image: playground:0.1.0
+  robotframework:
+    build: robotframework
+    image: robotframework:0.1.0
