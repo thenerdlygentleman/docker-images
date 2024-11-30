@@ -159,7 +159,6 @@ RUN ${STARSHIP} \
 
 ## EDIT BASH_ALIASES
 RUN echo 'eval "$(starship init bash)"' >> ${BASH_ALIASES}
-
-
 RUN echo 'export PATH="$PATH:$HOME/.local/bin"' >> ${BASH_ALIASES}
+
 ENTRYPOINT ["/bin/bash"]
