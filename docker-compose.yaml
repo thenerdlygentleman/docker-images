@@ -4,7 +4,7 @@ services:
     image: mdbook:0.1.0
   playground:
     build: playground
-    image: playground:0.1.0
+    image: playground:0.1.1
   robotframework:
     build: robotframework
     image: robotframework:0.1.0
