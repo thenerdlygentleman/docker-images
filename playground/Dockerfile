@@ -6,17 +6,18 @@ ARG PLAYER_HOME=/home/player
 
 
 # TOOLS VERSIONS
+ARG CARGO_WATCH=8.5.3
+ARG GLAB_VERSION=1.46.1
 ARG NODE_VERSION=20.17.0
 ARG NVM_VERSION=0.40.1
 ARG PIPX_VERSION=1.7.1
 ARG PRE_COMMIT_VERSION=3.8.0
 ARG PYTHON_VERSION=3.10.14
 ARG RUST_VERSION=1.81.0
-ARG STARSHIP_VERSION=1.20.1
 ARG STARSHIP_PRESET=plain-text-symbols
+ARG STARSHIP_VERSION=1.20.1
 ARG TYPER_VERSION=0.12.5
 ARG UV_VERSION=0.4.7
-ARG GLAB_VERSION=1.46.1
 
 # PATHS
 ## BASH
@@ -28,6 +29,7 @@ ARG CARGO_BIN=${CARGO_HOME}/bin
 ARG NVM_DIRECTORY=${PLAYER_HOME}/.nvm
 ## BINARIES
 ARG CARGO=${CARGO_BIN}/cargo
+ARG RUSTUP=${CARGO_BIN}/rustup
 ARG STARSHIP=${CARGO_BIN}/starship
 ARG PIPX=/usr/bin/pipx
 ARG UV=${PLAYER_HOME}/.local/bin/uv
@@ -77,6 +79,10 @@ RUN curl \
     --default-toolchain=${RUST_VERSION}
 ## EDIT BASH_ALIASES
 RUN echo '. "$HOME/.cargo/env"' >> ${BASH_ALIASES}
+## INSTALL CARGO PACKAGES
+RUN ${CARGO} install cargo-watch@${CARGO_WATCH}
+## ADD RUSTUP COMPONENTS
+RUN ${RUSTUP} component add clippy
 
 
 # INSTALL PIPX
@@ -112,18 +118,18 @@ RUN echo 'if [ -d "$NVM_DIRECTORY" ]; then \
 
 
 # INSTALL GITHUB CLIENT
-USER root
-RUN mkdir -p -m 755 /etc/apt/keyrings && \
-    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-    | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null &&\
-    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg &&\
-    echo "deb [arch=$(dpkg --print-architecture) \
-    signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] \
-    https://cli.github.com/packages stable main" \
-    | tee /etc/apt/sources.list.d/github-cli.list > /dev/null &&\
-    apt update &&\
-    apt install gh -y
-USER player
+#USER root
+#RUN mkdir -p -m 755 /etc/apt/keyrings && \
+#    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+#    | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null &&\
+#    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg &&\
+#    echo "deb [arch=$(dpkg --print-architecture) \
+#    signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] \
+#    https://cli.github.com/packages stable main" \
+#    | tee /etc/apt/sources.list.d/github-cli.list > /dev/null &&\
+#    apt update &&\
+#    apt install gh -y
+#USER player
 
 
 # INSTALL GITLAB CLIENT

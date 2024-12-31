@@ -31,5 +31,5 @@ the image.
 |**Name**        |**Version**|**Path**                                      |**Dockerhub**                                                                               |
 |----------------|:---------:|----------------------------------------------|--------------------------------------------------------------------------------------------|
 |*mdbook*        |`0.1.0`    |[./mdbook](./mdbook/README.md)                |[mdbook](https://hub.docker.com/repository/docker/thenerdlygentleman/mdbook)                |
-|*playground*    |`0.1.1`    |[./playground](./playground/README.md)        |[playground](https://hub.docker.com/repository/docker/thenerdlygentleman/playground)        |
+|*playground*    |`0.2.0`    |[./playground](./playground/README.md)        |[playground](https://hub.docker.com/repository/docker/thenerdlygentleman/playground)        |
 |*robotframework*|`0.1.0`    |[./robotframework](./robotframework/README.md)|[robotframework](https://hub.docker.com/repository/docker/thenerdlygentleman/robotframework)|
