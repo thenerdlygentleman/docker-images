@@ -1,10 +1,19 @@
 services:
-  mdbook:
-    build: mdbook
-    image: mdbook:0.1.0
-  playground:
-    build: playground
-    image: playground:0.1.1
-  robotframework:
-    build: robotframework
-    image: robotframework:0.1.0
+  mdbook-local:
+    image: mdbook-local
+    container_name: mdbook-local
+    build:
+      context: mdbook
+      dockerfile: Dockerfile
+  playground-local:
+    image: playground-local
+    container_name: playground-local
+    build:
+      context: playground
+      dockerfile: Dockerfile
+  robotframework-local:
+    image: robotframework-local
+    container_name: robotframework-local
+    build:
+      context: robotframework
+      dockerfile: Dockerfile

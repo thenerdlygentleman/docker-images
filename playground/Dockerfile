@@ -1,13 +1,19 @@
+# INSTALL GO
+# Go can only be build from source if, there is already a go compiler installed
+# Downloading the binary is an option, but makes the Dockerfile complicated
+# if you want to use it for multiple architectures.
+FROM golang:1.23.4 AS golang
+
+
 FROM ubuntu:22.04
 
 
 # USER HOME
 ARG PLAYER_HOME=/home/player
-
-
 # TOOLS VERSIONS
 ARG CARGO_WATCH=8.5.3
 ARG GLAB_VERSION=1.46.1
+ARG GO_VERSION=go1.23.4
 ARG NODE_VERSION=20.17.0
 ARG NVM_VERSION=0.40.1
 ARG PIPX_VERSION=1.7.1
@@ -18,29 +24,35 @@ ARG STARSHIP_PRESET=plain-text-symbols
 ARG STARSHIP_VERSION=1.20.1
 ARG TYPER_VERSION=0.12.5
 ARG UV_VERSION=0.4.7
-
 # PATHS
+##
+ARG LOCAL_BIN=${PLAYER_HOME}/.local/bin
 ## BASH
 ARG BASH_ALIASES=${PLAYER_HOME}/.bash_aliases
 ## CARGO
-ARG CARGO_HOME=${PLAYER_HOME}/.cargo
-ARG CARGO_BIN=${CARGO_HOME}/bin
+ARG CARGO_DIRECTORY=${PLAYER_HOME}/.cargo
+ARG CARGO_BIN=${CARGO_DIRECTORY}/bin
 ## NVM
 ARG NVM_DIRECTORY=${PLAYER_HOME}/.nvm
+## GOLANG
+ARG GO_DIRECTORY=${PLAYER_HOME}/goroot
+ARG GO_BIN=${GO_DIRECTORY}/bin
 ## BINARIES
 ARG CARGO=${CARGO_BIN}/cargo
 ARG RUSTUP=${CARGO_BIN}/rustup
 ARG STARSHIP=${CARGO_BIN}/starship
 ARG PIPX=/usr/bin/pipx
-ARG UV=${PLAYER_HOME}/.local/bin/uv
+ARG UV=${LOCAL_BIN}/uv
+
 
 # CREATE NEW USER
 RUN useradd -ms /bin/bash player
 WORKDIR ${PLAYER_HOME}
 
+
 # INSTALL APT PACKAGES
 ENV DEBIAN_FRONTEND="noninteractive"
-RUN apt update && apt install -y \
+RUN apt update && apt install --yes \
     cmake \
     curl \
     fontconfig \
@@ -55,9 +67,8 @@ RUN apt update && apt install -y \
 # ACTIVATE USER
 USER player
 
-
 # CREATE DIRECTORIES
-RUN mkdir \
+RUN mkdir --parents \
     ${PLAYER_HOME}/.config \
     ${PLAYER_HOME}/repos \
     ${PLAYER_HOME}/tmp
@@ -163,8 +174,14 @@ RUN ${STARSHIP} \
 #    cd ${PLAYER_HOME}
 #RUN fc-cache -fv
 
+
+# COPY GOLANG
+COPY --from=golang /usr/local/go/bin/* ${LOCAL_BIN}
+
+
 ## EDIT BASH_ALIASES
-RUN echo 'eval "$(starship init bash)"' >> ${BASH_ALIASES}
+RUN echo 'eval "$(/home/player/.cargo/bin/starship init bash)"' >> ${BASH_ALIASES}
 RUN echo 'export PATH="$PATH:$HOME/.local/bin"' >> ${BASH_ALIASES}
+
 
 ENTRYPOINT ["/bin/bash"]
