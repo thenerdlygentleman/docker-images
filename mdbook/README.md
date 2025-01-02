@@ -2,7 +2,14 @@
 
 ## Summary
 
-Image that can be run in CI for deploying pages.
+Debian based image with mdbook, mdbook-mermaid and mdbook-variables
+installed.
+
+## Architecture
+
+- `amd64`
+- `arm64`
+- `i386`
 
 ## Software
 

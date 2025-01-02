@@ -18,7 +18,6 @@ docker compose run --rm --build <container-name>
 docker compose --progress plain run --rm --build <container-name>
 ```
 
-
 ### GitHub
 
 The Docker images are build and published to **Dockerhub** via
@@ -40,10 +39,19 @@ automatically.
 A collaborator has to start the CI manually, by adding the desired tag name of
 the image.
 
+## Test
+
+If the **Dockerfile** has a test stage you can directly run it with
+
+```shell
+# the stage must be named `test` for this to work
+docker build --target test <path/to/image>
+```
+
 ## Images
 
 |**Name**        |**Version**|**Path**                                      |**Dockerhub**                                                                               |
 |----------------|:---------:|----------------------------------------------|--------------------------------------------------------------------------------------------|
-|*mdbook*        |`0.1.0`    |[./mdbook](./mdbook/README.md)                |[mdbook](https://hub.docker.com/repository/docker/thenerdlygentleman/mdbook)                |
-|*playground*    |`0.3.0`    |[./playground](./playground/README.md)        |[playground](https://hub.docker.com/repository/docker/thenerdlygentleman/playground)        |
-|*robotframework*|`0.1.0`    |[./robotframework](./robotframework/README.md)|[robotframework](https://hub.docker.com/repository/docker/thenerdlygentleman/robotframework)|
+|*mdbook*        |`0.2.0`    |[./mdbook](./mdbook/README.md)                |[mdbook](https://hub.docker.com/repository/docker/thenerdlygentleman/mdbook)                |
+|*playground*    |`0.4.0`    |[./playground](./playground/README.md)        |[playground](https://hub.docker.com/repository/docker/thenerdlygentleman/playground)        |
+|*robotframework*|`0.2.0`    |[./robotframework](./robotframework/README.md)|[robotframework](https://hub.docker.com/repository/docker/thenerdlygentleman/robotframework)|
