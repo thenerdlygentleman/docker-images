@@ -17,7 +17,7 @@ Image that can be used for development.
 |*pipx*       |`1.7.1`    |&check;      |
 |*pre-commit* |`3.8.0`    |&check;      |
 |*python*     |`3.10.14`  |&check;      |
-|*rust*       |`1.81`     |&check;      |
+|*rust*       |`1.83.0`   |&check;      |
 |*starship*   |`1.20.1`   |&check;      |
 |*typer*      |`0.12.5`   |&check;      |
 |*uv*         |`0.4.7`    |&check;      |
