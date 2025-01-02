@@ -11,6 +11,7 @@ Image that can be used for development.
 |*cargo-watch*|`8.5.3`    |&check;      |
 |*gh*         |`2.57.0`   |&cross;      |
 |*glab*       |`1.46.1`   |&cross;      |
+|*golang*     |`1.23.4`   |&check;      |
 |*node*       |`20.17.0`  |&check;      |
 |*nvm*        |`0.40.1`   |&check;      |
 |*pipx*       |`1.7.1`    |&check;      |
