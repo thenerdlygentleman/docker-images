@@ -24,7 +24,9 @@ jobs:
 
       - name: Test the image
         run: docker build --target test ./playground
+
   push:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Login to Docker Hub
