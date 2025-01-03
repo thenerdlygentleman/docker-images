@@ -1,133 +1,104 @@
-# USER HOME
-ARG PLAYER_HOME=/home/player
-# VERSIONS
-## RUST
-ARG CARGO_WATCH_VERSION=8.5.3
-ARG RUST_VERSION=1.83.0
-ARG STARSHIP_PRESET=plain-text-symbols
-ARG STARSHIP_VERSION=1.20.1
-## PYTHON
-ARG PIPX_VERSION=1.7.1
-ARG PRE_COMMIT_VERSION=3.8.0
-ARG PYTHON_VERSION=3.10.14
-ARG TYPER_VERSION=0.12.5
-ARG UV_VERSION=0.4.7
-## NODE
-ARG NODE_VERSION=20.17.0
-ARG NVM_VERSION=0.40.1
-## GOLANG
+##########      VERSIONS        ##########
 ARG GO_VERSION=1.23.4
-# PATHS
-##
-ARG LOCAL_BIN=${PLAYER_HOME}/.local/bin
-## BASH
+ARG CARGO_WATCH_VERSION=8.5.3
+ARG UV_VERSION=0.5.14
+ARG PYTHON_VERSION=3.10.14
+ARG RUST_VERSION=1.83.0
+
+##########      PATHS           ##########
+# USER
+ARG PLAYER_HOME=/home/player
 ARG BASH_ALIASES=${PLAYER_HOME}/.bash_aliases
-## CARGO
-ARG CARGO_DIRECTORY=${PLAYER_HOME}/.cargo
-ARG CARGO_BIN=${CARGO_DIRECTORY}/bin
-## NVM
-ARG NVM_DIRECTORY=${PLAYER_HOME}/.nvm
-## GOLANG
-ARG GO_DIRECTORY=${PLAYER_HOME}/goroot
-ARG GO_BIN=${GO_DIRECTORY}/bin
-## BINARIES
-ARG CARGO=${CARGO_BIN}/cargo
-ARG RUSTUP=${CARGO_BIN}/rustup
-ARG STARSHIP=${CARGO_BIN}/starship
-ARG UV=${LOCAL_BIN}/uv
+ARG LOCAL_BIN=${PLAYER_HOME}/.local/bin
 
-FROM debian:12 AS build
+##########      STARSHIP        ##########
+FROM debian:12 AS starship
+RUN apt update && apt install --yes curl
+RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir /root
 
-RUN apt install --yes curl
+##########      CARGO BINARIES  ##########
+FROM rust:slim AS cargo
+ARG CARGO_WATCH_VERSION
+RUN cargo install cargo-watch@${CARGO_WATCH_VERSION}
 
-# GOLANG
-FROM golang:${GO_VERSION} AS golang
-
-# STARSHIP
-FROM build AS starship
-
-ARG STARSHIP_VERSION
-
-RUN curl -sS https://starship.rs/install.sh \
-    | sh -s -- \
-    --version ${STARSHIP_VERSION} \
-    --bin-dir /root/.local/bin \
-    --yes
-
-RUN ls -la /root/.local/bin
-
-# UV
-FROM build AS uv
-
+##########      UV              ##########
+FROM debian:12 AS uv
 ARG UV_VERSION
+RUN apt update && apt install --yes curl
+RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh
 
-RUN curl -LsSf https://astral.sh/uv/install.sh \
-    | sh -s -- \
-    --version ${UV_VERSION}
+##########      BASE            ##########
+FROM debian:12-slim AS base
 
-
-# FINAL STAGE
-FROM debian:12-slim AS playground
-
+# ARGUMENTS
 ARG PLAYER_HOME
 ARG BASH_ALIASES
 ARG LOCAL_BIN
-ARG STARSHIP
-ARG STARSHIP_PRESET
-ARG RUSTUP
-ARG CARGO_BIN
+ARG PYTHON_VERSION
+ARG RUST_VERSION
 
 # APT
 RUN apt update && apt install --yes \
-    pipx
+    curl \
+    gcc \
+    nano
 
-# CREATE NEW USER
+# CREATE USER
 RUN useradd -ms /bin/bash player
 WORKDIR ${PLAYER_HOME}
 USER player
 
 # CREATE DIRECTORIES
 RUN mkdir --parents \
-    ${LOCAL_BIN} \
-    ${PLAYER_HOME}/.config \
-    ${PLAYER_HOME}/repos \
-    ${PLAYER_HOME}/tmp
-
+    ${LOCAL_BIN}
 
 # CREATE FILES
 RUN touch \
     ${BASH_ALIASES}
 
+# COPY FILES FROM OTHER IMAGES
+COPY --from=starship /root/starship ${LOCAL_BIN}
+COPY --from=cargo /usr/local/cargo/bin/cargo-watch ${LOCAL_BIN}
+COPY --from=uv /root/.local/bin/uv ${LOCAL_BIN}
+
+# INSTALL PYTHON
+RUN ${LOCAL_BIN}/uv python install ${PYTHON_VERSION}
 
 # INSTALL RUST
 RUN curl \
     --proto '=https' \
     --tlsv1.2 \
-    -sSf https://sh.rustup.rs/ \
+    -sSf https://sh.rustup.rs \
     | sh -s -- \
     -y \
     --default-toolchain=${RUST_VERSION}
 
-#RUN ${RUSTUP} component add clippy
-
-
-# COPY FROM OTHER STAGES
-## GOLANG
-COPY --from=golang /usr/local/go/bin/go ${LOCAL_BIN}
-COPY --from=golang /usr/local/go/bin/gofmt ${LOCAL_BIN}
-## STARSHIP
-COPY --from=starship /root/.local/bin/startship ${LOCAL_BIN}
-
-
-
-
-# FINALL STAGE / CONFIGURATION
-## BASH_ALIASES
-### COMMON ALIASES
+# EDIT BASH ALIASES
 RUN echo 'alias ll="ls -la"' >> ${BASH_ALIASES}
 RUN echo 'export PATH="$PATH:$HOME/.local/bin"' >> ${BASH_ALIASES}
-### CARGO
 RUN echo '. "$HOME/.cargo/env"' >> ${BASH_ALIASES}
+RUN echo 'eval "$(starship init bash)"' >> ${BASH_ALIASES}
 
+##########      TEST            ##########
+FROM base AS test
 
-ENTRYPOINT ["/bin/bash"]
+ARG PLAYER_HOME
+ARG LOCAL_BIN
+ARG CARGO_BIN=${PLAYER_HOME}/.cargo/bin
+
+RUN ${LOCAL_BIN}/starship help
+RUN ${LOCAL_BIN}/cargo-watch --help
+
+RUN mkdir ${PLAYER_HOME}/python-test
+WORKDIR ${PLAYER_HOME}/python-test
+RUN ${LOCAL_BIN}/uv init
+RUN ${LOCAL_BIN}/uv python --version
+
+RUN mkdir ${PLAYER_HOME}/rust-test
+WORKDIR ${PLAYER_HOME}/rust-test
+RUN ${CARGO_BIN}/cargo init
+RUN ${CARGO_BIN}/cargo run
+
+##########      FINAL STAGE     ##########
+FROM base AS playground
+ENTRYPOINT [ "/bin/bash" ]

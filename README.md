@@ -18,7 +18,6 @@ docker compose run --rm --build <container-name>
 docker compose --progress plain run --rm --build <container-name>
 ```
 
-
 ### GitHub
 
 The Docker images are build and published to **Dockerhub** via
@@ -39,6 +38,15 @@ The **Gitlab** action for the production version of the image are not triggered
 automatically.
 A collaborator has to start the CI manually, by adding the desired tag name of
 the image.
+
+## Test
+
+If the **Dockerfile** has a test stage you can directly run it with
+
+```shell
+# the stage must be named `test` for this to work
+docker build --target test <path/to/image>
+```
 
 ## Images
 
