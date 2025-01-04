@@ -1,125 +1,162 @@
-# INSTALL GO
-# Go can only be build from source if, there is already a go compiler installed
-# Downloading the binary is an option, but makes the Dockerfile complicated
-# if you want to use it for multiple architectures.
-FROM golang:1.23.4 AS golang
-
-
-FROM ubuntu:22.04
-
-
-# USER HOME
-ARG PLAYER_HOME=/home/player
-# TOOLS VERSIONS
-ARG CARGO_WATCH=8.5.3
-ARG GLAB_VERSION=1.46.1
-ARG GO_VERSION=go1.23.4
+##########      VERSIONS        ##########
+ARG CARGO_WATCH_VERSION=8.5.3
+ARG GO_VERSION=1.23.4
 ARG NODE_VERSION=20.17.0
 ARG NVM_VERSION=0.40.1
-ARG PIPX_VERSION=1.7.1
-ARG PRE_COMMIT_VERSION=3.8.0
 ARG PYTHON_VERSION=3.10.14
-ARG RUST_VERSION=1.81.0
-ARG STARSHIP_PRESET=plain-text-symbols
-ARG STARSHIP_VERSION=1.20.1
-ARG TYPER_VERSION=0.12.5
-ARG UV_VERSION=0.4.7
-# PATHS
-##
-ARG LOCAL_BIN=${PLAYER_HOME}/.local/bin
-## BASH
+ARG RUST_VERSION=1.83.0
+ARG STARSHIP_VERSION=1.21.1
+ARG UV_VERSION=0.5.14
+
+##########      PATHS           ##########
+# PLAYER
+ARG PLAYER_HOME=/home/player
 ARG BASH_ALIASES=${PLAYER_HOME}/.bash_aliases
-## CARGO
+ARG LOCAL_BIN=${PLAYER_HOME}/.local/bin
+ARG LOCAL_CONFIG=${PLAYER_HOME}/.config
+ARG LOCAL_TMP=${PLAYER_HOME}/.tmp
+# RUST
 ARG CARGO_DIRECTORY=${PLAYER_HOME}/.cargo
 ARG CARGO_BIN=${CARGO_DIRECTORY}/bin
-## NVM
+ARG RUSTUP_DIRECTORY=${PLAYER_HOME}/.rustup
+ARG STARSHIP_TOML=${PLAYER_HOME}/.config/starship.toml
+# NODE
 ARG NVM_DIRECTORY=${PLAYER_HOME}/.nvm
-## GOLANG
-ARG GO_DIRECTORY=${PLAYER_HOME}/goroot
-ARG GO_BIN=${GO_DIRECTORY}/bin
-## BINARIES
-ARG CARGO=${CARGO_BIN}/cargo
-ARG RUSTUP=${CARGO_BIN}/rustup
-ARG STARSHIP=${CARGO_BIN}/starship
-ARG PIPX=/usr/bin/pipx
-ARG UV=${LOCAL_BIN}/uv
+# GO
+ARG GO_DIRECTORY=/usr/local/go
 
+##########      CONFIG          ##########
+ARG STARSHIP_PRESET=plain-text-symbols
 
-# CREATE NEW USER
+##########      CARGO BINARIES  ##########
+FROM rust:slim AS cargo
+ARG CARGO_WATCH_VERSION
+RUN cargo install cargo-watch@${CARGO_WATCH_VERSION}
+
+##########      Build           ##########
+FROM debian:12-slim AS build
+RUN apt update && apt install --yes curl wget tar
+
+##########      STARSHIP        ##########
+FROM build AS starship
+ARG STARSHIP_VERSION
+RUN curl -sS https://starship.rs/install.sh \
+    | sh -s -- \
+    --yes \
+    --bin-dir /root \
+    --version v${STARSHIP_VERSION}
+
+##########      UV              ##########
+FROM build AS uv
+ARG UV_VERSION
+RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh
+
+##########      RUST            ##########
+FROM build AS rust
+ARG RUST_VERSION
+RUN curl \
+    --proto '=https' \
+    --tlsv1.2 \
+    -sSf https://sh.rustup.rs \
+    | sh -s -- \
+    -y \
+    --default-toolchain=${RUST_VERSION}
+
+##########      NODE            ##########
+FROM build AS node
+ARG NODE_VERSION
+ARG NVM_VERSION
+RUN curl -o- \
+    https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh \
+    | bash
+RUN . /root/.nvm/nvm.sh && \
+    nvm install ${NODE_VERSION}
+
+##########      GO              ##########
+FROM build AS go
+ARG GO_VERSION
+# If you want to include more architectures, you have to add them to the
+# following shell script.
+RUN \
+    if [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "amd64" ]; then \
+        wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz; \
+        tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-amd64.tar.gz; \
+    elif [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
+        wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-arm64.tar.gz; \
+        tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-arm64.tar.gz; \
+    else \
+        echo "Unsupported architecture"; \
+        exit 1; \
+    fi
+
+##########      BASE            ##########
+FROM debian:12-slim AS base
+
+# ARGUMENTS
+ARG BASH_ALIASES
+ARG CARGO_BIN
+ARG CARGO_DIRECTORY
+ARG GO_DIRECTORY
+ARG GO_VERSION
+ARG LOCAL_BIN
+ARG LOCAL_CONFIG
+ARG LOCAL_TMP
+ARG NVM_DIRECTORY
+ARG PLAYER_HOME
+ARG PYTHON_VERSION
+ARG RUST_VERSION
+ARG RUSTUP_DIRECTORY
+ARG STARSHIP_PRESET
+ARG STARSHIP_TOML
+
+# APT
+RUN apt update && apt install --yes \
+    curl \
+    gcc \
+    nano
+
+# CREATE USER
 RUN useradd -ms /bin/bash player
 WORKDIR ${PLAYER_HOME}
-
-
-# INSTALL APT PACKAGES
-ENV DEBIAN_FRONTEND="noninteractive"
-RUN apt update && apt install --yes \
-    cmake \
-    curl \
-    fontconfig \
-    gcc \
-    git \
-    nano \
-    pipx \
-    wget \
-    zip
-
-
-# ACTIVATE USER
 USER player
 
 # CREATE DIRECTORIES
 RUN mkdir --parents \
-    ${PLAYER_HOME}/.config \
-    ${PLAYER_HOME}/repos \
-    ${PLAYER_HOME}/tmp
-
+    ${CARGO_BIN} \
+    ${LOCAL_BIN} \
+    ${LOCAL_CONFIG} \
+    ${LOCAL_TMP}
 
 # CREATE FILES
 RUN touch \
-    ${BASH_ALIASES}
+    ${BASH_ALIASES} \
+    ${STARSHIP_TOML}
 
+# COPY FILES FROM OTHER IMAGES
+COPY --from=starship /root/starship ${LOCAL_BIN}
+COPY --from=uv /root/.local/bin/uv ${LOCAL_BIN}
+COPY --from=uv /root/.local/bin/uvx ${LOCAL_BIN}
+COPY --from=rust /root/.cargo ${CARGO_DIRECTORY}
+COPY --from=rust /root/.rustup ${RUSTUP_DIRECTORY}
+COPY --from=node /root/.nvm ${NVM_DIRECTORY}
+COPY --from=go /usr/local/go ${GO_DIRECTORY}
+COPY --from=cargo /usr/local/cargo/bin/cargo-watch ${LOCAL_BIN}
 
-# INSTALL RUST
-## INSTALL
-RUN curl \
-    --proto '=https' \
-    --tlsv1.2 \
-    -sSf https://sh.rustup.rs/ \
-    | sh -s -- \
-    -y \
-    --default-toolchain=${RUST_VERSION}
-## EDIT BASH_ALIASES
+# INSTALL PYTHON
+RUN ${LOCAL_BIN}/uv python install ${PYTHON_VERSION}
+
+# ADD CLIPPY TO RUSTUP
+RUN ${CARGO_BIN}/rustup component add clippy
+
+# EDIT STARSHIP CONFIG
+RUN ${LOCAL_BIN}/starship preset ${STARSHIP_PRESET} -o ${STARSHIP_TOML}
+
+# EDIT BASH ALIASES
+RUN echo 'alias ll="ls -la"' >> ${BASH_ALIASES}
+RUN echo 'export PATH="$PATH:$HOME/.local/bin:/usr/local/go/bin"' \
+>> ${BASH_ALIASES}
 RUN echo '. "$HOME/.cargo/env"' >> ${BASH_ALIASES}
-## INSTALL CARGO PACKAGES
-RUN ${CARGO} install cargo-watch@${CARGO_WATCH}
-## ADD RUSTUP COMPONENTS
-RUN ${RUSTUP} component add clippy
-
-
-# INSTALL PIPX
-## EDIT BASH_ALIASES
-#RUN echo 'eval "$(register-python-argcomplete pipx)"' >> ${BASH_ALIASES}
-## INSTALL PACKAGES
-RUN ${PIPX} ensurepath
-RUN ${PIPX} install uv==${UV_VERSION}
-RUN ${PIPX} install pre-commit==${PRE_COMMIT_VERSION}
-RUN ${PIPX} install typer==${TYPER_VERSION}
-
-
-# INSTALL PYTHON VERSION
-RUN ${UV} python install ${PYTHON_VERSION}
-
-
-# INSTALL NODE
-## INSTALLATION
-RUN curl -o- \
-    https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh \
-    | bash
-USER root
-RUN . ${NVM_DIRECTORY}/nvm.sh && \
-    nvm install ${NODE_VERSION}
-USER player
-## EDIT BASH_ALIASES
+RUN echo 'eval "$(starship init bash)"' >> ${BASH_ALIASES}
 RUN echo 'NVM_DIRECTORY="$HOME/.nvm"' >> ${BASH_ALIASES}
 RUN echo 'if [ -d "$NVM_DIRECTORY" ]; then \
     export NVM_DIR="$NVM_DIRECTORY"; \
@@ -127,61 +164,50 @@ RUN echo 'if [ -d "$NVM_DIRECTORY" ]; then \
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"; fi' \
     >> ${BASH_ALIASES}
 
+##########      TEST            ##########
+FROM base AS test
 
-# INSTALL GITHUB CLIENT
-#USER root
-#RUN mkdir -p -m 755 /etc/apt/keyrings && \
-#    wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-#    | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null &&\
-#    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg &&\
-#    echo "deb [arch=$(dpkg --print-architecture) \
-#    signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] \
-#    https://cli.github.com/packages stable main" \
-#    | tee /etc/apt/sources.list.d/github-cli.list > /dev/null &&\
-#    apt update &&\
-#    apt install gh -y
-#USER player
+ARG CARGO_BIN
+ARG GO_DIRECTORY
+ARG LOCAL_BIN
+ARG NODE_VERSION
+ARG NVM_DIRECTORY
+ARG PLAYER_HOME
 
+RUN ${LOCAL_BIN}/starship help
+RUN ${LOCAL_BIN}/cargo-watch --help
 
-# INSTALL GITLAB CLIENT
-# Deactivating it at the moment, because the installation is only for x86.
-# TODO find a better way to install this.
-#ARG GLAB_DEB=glab_${GLAB_VERSION}_Linux_x86_64.deb
-#RUN wget -P ${PLAYER_HOME}/tmp \
-#    https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VERSION}/downloads/${GLAB_DEB}
-#USER root
-#RUN apt install ${PLAYER_HOME}/tmp/${GLAB_DEB}
-#USER player
+# PYTHON
+RUN mkdir ${PLAYER_HOME}/python-test
+WORKDIR ${PLAYER_HOME}/python-test
+RUN ${LOCAL_BIN}/uv init
+RUN ${LOCAL_BIN}/uv run hello.py
+RUN ${LOCAL_BIN}/uv add typer
 
+# RUST
+RUN mkdir ${PLAYER_HOME}/rust-test
+WORKDIR ${PLAYER_HOME}/rust-test
+RUN ${CARGO_BIN}/cargo init
+RUN ${CARGO_BIN}/cargo run
+RUN ${CARGO_BIN}/cargo add evdev
 
-# INSTALL STARTSHIP
-RUN curl -sS https://starship.rs/install.sh \
-    | sh -s -- \
-    --bin-dir ${CARGO_BIN} \
-    --yes
-RUN touch ${PLAYER_HOME}/.config/startship.toml
-RUN ${STARSHIP} \
-    preset ${STARSHIP_PRESET} \
-    -o ${PLAYER_HOME}/.config/starship.toml
+# GO
+RUN mkdir ${PLAYER_HOME}/go-test
+WORKDIR ${PLAYER_HOME}/go-test
+RUN ${GO_DIRECTORY}/bin/go mod init hello
+RUN echo 'package main; import ("fmt"); func main() { fmt.Println("Hello World!");}' \
+    > main.go
+RUN ls -la
+RUN ${GO_DIRECTORY}/bin/go run ./main.go
+RUN ${GO_DIRECTORY}/bin/go get github.com/mattn/go-sqlite3
 
-# Following code install the GeistMono font. Is not necessary, because the
-# host machine does need to install the font.
-#RUN mkdir ${PLAYER_HOME}/.fonts
-#RUN wget -P ${PLAYER_HOME}/.fonts \
-#    https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/GeistMono.zip
-#RUN cd ${PLAYER_HOME}/.fonts && \
-#    unzip ${PLAYER_HOME}/.fonts/GeistMono.zip && \
-#    cd ${PLAYER_HOME}
-#RUN fc-cache -fv
+# NODE
+RUN mkdir ${PLAYER_HOME}/node-test
+WORKDIR ${PLAYER_HOME}/node-test
+RUN touch main.js
+RUN echo 'console.log("Hello World!");' > main.js
+RUN ${NVM_DIRECTORY}/versions/node/v${NODE_VERSION}/bin/node ./main.js
 
-
-# COPY GOLANG
-COPY --from=golang /usr/local/go/bin/* ${LOCAL_BIN}
-
-
-## EDIT BASH_ALIASES
-RUN echo 'eval "$(/home/player/.cargo/bin/starship init bash)"' >> ${BASH_ALIASES}
-RUN echo 'export PATH="$PATH:$HOME/.local/bin"' >> ${BASH_ALIASES}
-
-
-ENTRYPOINT ["/bin/bash"]
+##########      FINAL STAGE     ##########
+FROM base AS playground
+ENTRYPOINT [ "/bin/bash" ]

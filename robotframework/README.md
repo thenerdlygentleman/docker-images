@@ -2,7 +2,12 @@
 
 ## Summary
 
-Image for automation testing with robot framework.
+Python based image with robot framework pre-installed.
+
+## Architecture
+
+- `amd64`
+- `arm64`
 
 ## Software
 

@@ -1,7 +1,5 @@
-FROM ubuntu:24.04
+FROM debian:12-slim AS base
 
-
-# PIP VERSIONS
 ARG APPIUM_LIBRARY=2.0.0
 ARG BROWSER_LIBRARY=18.5.1
 ARG DOCTEST_LIBRARY=0.20.0
@@ -10,18 +8,12 @@ ARG PABOT_LIBRARY=2.18.0
 ARG ROBOTFRAMEWORK=7.0
 ARG SSH_LIBRARY=3.8.0
 
-
-# INSTALL NODE
-RUN apt update \
-    && apt upgrade -y \
-    && apt install -y \
+RUN apt update && apt install --yes \
     nodejs \
     npm \
     python3 \
     pip
 
-
-# PIP INSTALL
 RUN pip install --break-system-packages \
     robotframework-appiumlibrary==${APPIUM_LIBRARY} \
     robotframework-browser==${BROWSER_LIBRARY} \
@@ -31,7 +23,14 @@ RUN pip install --break-system-packages \
     robotframework-sshlibrary==${SSH_LIBRARY} \
     robotframework==${ROBOTFRAMEWORK}
 
-    
-# INSTALL BROWSER DEPENCIES
 RUN npx playwright install-deps
 RUN rfbrowser init
+
+FROM base AS test
+RUN mkdir /root/robot-test
+WORKDIR /root/robot-test
+COPY ./test/robot-test.robot .
+RUN robot robot-test.robot
+
+FROM base AS robotframework
+ENTRYPOINT [ "/bin/bash" ]
