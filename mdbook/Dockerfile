@@ -9,7 +9,7 @@ RUN cargo install \
     mdbook-variables@${MDBOOK_VARIABLES} \
     mdbook@${MDBOOK}
 
-FROM debian:12-slim AS base
+FROM debian:12-slim AS mdbook
 COPY --from=rust \
     /usr/local/cargo/bin/mdbook \
     /usr/local/bin/mdbook
@@ -20,13 +20,10 @@ COPY --from=rust \
     /usr/local/cargo/bin/mdbook-variables \
     /usr/local/bin/mdbook-variables
 
-FROM base AS test
+FROM mdbook AS test
 RUN mkdir /root/book-test
 WORKDIR /root/book-test
 RUN touch book.toml
 RUN /usr/local/bin/mdbook help
 RUN /usr/local/bin/mdbook-mermaid install .
 RUN /usr/local/bin/mdbook-variables help
-
-FROM base AS mdbook
-ENTRYPOINT [ "/bin/bash" ]
