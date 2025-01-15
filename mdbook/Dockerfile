@@ -20,6 +20,8 @@ COPY --from=rust \
     /usr/local/cargo/bin/mdbook-variables \
     /usr/local/bin/mdbook-variables
 
+ENTRYPOINT ["/bin/bash", "-l", "-c"]
+
 FROM mdbook AS test
 RUN mkdir /root/book-test
 WORKDIR /root/book-test
