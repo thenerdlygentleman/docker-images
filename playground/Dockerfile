@@ -79,18 +79,18 @@ ARG GO_VERSION
 # following shell script.
 RUN \
     if [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "amd64" ]; then \
-        wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz; \
-        tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-amd64.tar.gz; \
+    wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz; \
+    tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-amd64.tar.gz; \
     elif [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
-        wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-arm64.tar.gz; \
-        tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-arm64.tar.gz; \
+    wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-arm64.tar.gz; \
+    tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-arm64.tar.gz; \
     else \
-        echo "Unsupported architecture"; \
-        exit 1; \
+    echo "Unsupported architecture"; \
+    exit 1; \
     fi
 
 ##########      BASE            ##########
-FROM debian:12-slim AS base
+FROM debian:12-slim AS playground
 
 # ARGUMENTS
 ARG BASH_ALIASES
@@ -154,7 +154,7 @@ RUN ${LOCAL_BIN}/starship preset ${STARSHIP_PRESET} -o ${STARSHIP_TOML}
 # EDIT BASH ALIASES
 RUN echo 'alias ll="ls -la"' >> ${BASH_ALIASES}
 RUN echo 'export PATH="$PATH:$HOME/.local/bin:/usr/local/go/bin"' \
->> ${BASH_ALIASES}
+    >> ${BASH_ALIASES}
 RUN echo '. "$HOME/.cargo/env"' >> ${BASH_ALIASES}
 RUN echo 'eval "$(starship init bash)"' >> ${BASH_ALIASES}
 RUN echo 'NVM_DIRECTORY="$HOME/.nvm"' >> ${BASH_ALIASES}
@@ -165,7 +165,7 @@ RUN echo 'if [ -d "$NVM_DIRECTORY" ]; then \
     >> ${BASH_ALIASES}
 
 ##########      TEST            ##########
-FROM base AS test
+FROM playground AS test
 
 ARG CARGO_BIN
 ARG GO_DIRECTORY
@@ -207,7 +207,3 @@ WORKDIR ${PLAYER_HOME}/node-test
 RUN touch main.js
 RUN echo 'console.log("Hello World!");' > main.js
 RUN ${NVM_DIRECTORY}/versions/node/v${NODE_VERSION}/bin/node ./main.js
-
-##########      FINAL STAGE     ##########
-FROM base AS playground
-ENTRYPOINT [ "/bin/bash" ]

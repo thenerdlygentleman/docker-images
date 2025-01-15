@@ -1,4 +1,4 @@
-FROM debian:12-slim AS base
+FROM debian:12-slim AS robotframework
 
 ARG APPIUM_LIBRARY=2.0.0
 ARG BROWSER_LIBRARY=18.5.1
@@ -26,11 +26,8 @@ RUN pip install --break-system-packages \
 RUN npx playwright install-deps
 RUN rfbrowser init
 
-FROM base AS test
+FROM robotframework AS test
 RUN mkdir /root/robot-test
 WORKDIR /root/robot-test
 COPY ./test/robot-test.robot .
 RUN robot robot-test.robot
-
-FROM base AS robotframework
-ENTRYPOINT [ "/bin/bash" ]

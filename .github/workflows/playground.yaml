@@ -29,6 +29,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           file: ./playground/Dockerfile
+          target: playground
           platforms: linux/amd64,linux/arm64
           push: true
           tags: thenerdlygentleman/playground:${{ github.event.inputs.tag }}
