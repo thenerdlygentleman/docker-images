@@ -10,6 +10,7 @@ RUN cargo install \
     mdbook@${MDBOOK}
 
 FROM debian:12-slim AS mdbook
+
 COPY --from=rust \
     /usr/local/cargo/bin/mdbook \
     /usr/local/bin/mdbook
@@ -20,9 +21,10 @@ COPY --from=rust \
     /usr/local/cargo/bin/mdbook-variables \
     /usr/local/bin/mdbook-variables
 
-ENTRYPOINT ["/bin/bash", "-l", "-c"]
+ENTRYPOINT ["/usr/bin/bash", "-l", "-c"]
 
 FROM mdbook AS test
+
 RUN mkdir /root/book-test
 WORKDIR /root/book-test
 RUN touch book.toml
