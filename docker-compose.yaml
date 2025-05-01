@@ -1,19 +1,54 @@
 services:
+
+  # MDBOOK
   mdbook-local:
     image: mdbook-local
     container_name: mdbook-local
     build:
       context: mdbook
       dockerfile: Dockerfile
+      target: mdbook
+  mdbook-local-test:
+    image: mdbook-local-test
+    container_name: mdbook-local-test
+    build:
+      context: mdbook
+      dockerfile: Dockerfile
+      target: test
+
+  # PLAYGROUND
   playground-local:
     image: playground-local
     container_name: playground-local
     build:
       context: playground
       dockerfile: Dockerfile
+      target: playground
+    environment:
+      - PASSWORD=password
+      - SUDO_PASSWORD=password
+    ports:
+      - 8443:8443
+  playground-local-test:
+    image: playground-local-test
+    container_name: playground-local-test
+    build:
+      context: playground
+      dockerfile: Dockerfile
+      target: test
+
+  # ROBOTFRAMEWORK
   robotframework-local:
     image: robotframework-local
     container_name: robotframework-local
     build:
       context: robotframework
       dockerfile: Dockerfile
+      target: robotframework
+  robotframework-local-test:
+    image: robotframework-local-test
+    container_name: robotframework-local-test
+    build:
+      context: robotframework
+      dockerfile: Dockerfile
+      target: test

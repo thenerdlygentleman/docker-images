@@ -13,9 +13,9 @@ Build and run the containers locally from
 [docker-compose](./docker-compose.yaml) with
 
 ```shell
-docker compose run --rm --build <container-name>
+docker compose up --detach --build <container-target>
 # For debugging
-docker compose --progress plain run --rm --build <container-name>
+docker compose --progress plain up --detach --build <container-target>
 ```
 
 ### GitHub
@@ -44,8 +44,8 @@ the image.
 If the **Dockerfile** has a test stage you can directly run it with
 
 ```shell
-# the stage must be named `test` for this to work
-docker build --target test <path/to/image>
+# All docker images have a test target in the compose file.
+docker compose build --no-cache <container-target>
 ```
 
 ## Images
@@ -53,5 +53,5 @@ docker build --target test <path/to/image>
 |**Name**        |**Version**|**Path**                                      |**Dockerhub**                                                                               |
 |----------------|:---------:|----------------------------------------------|--------------------------------------------------------------------------------------------|
 |*mdbook*        |`0.2.0`    |[./mdbook](./mdbook/README.md)                |[mdbook](https://hub.docker.com/repository/docker/thenerdlygentleman/mdbook)                |
-|*playground*    |`0.4.0`    |[./playground](./playground/README.md)        |[playground](https://hub.docker.com/repository/docker/thenerdlygentleman/playground)        |
+|*playground*    |`0.5.0`    |[./playground](./playground/README.md)        |[playground](https://hub.docker.com/repository/docker/thenerdlygentleman/playground)        |
 |*robotframework*|`0.2.0`    |[./robotframework](./robotframework/README.md)|[robotframework](https://hub.docker.com/repository/docker/thenerdlygentleman/robotframework)|
