@@ -1,213 +1,206 @@
-##########      VERSIONS        ##########
-ARG CARGO_WATCH_VERSION=8.5.3
+# VERSIONS
+## CODE_SERVER
+ARG CODE_SERVER_VER=4.99.0
+## PYTHON
+ARG UV_VER=0.6.16
+ARG PYTHON_VER=3.10.14
+## GO
 ARG GO_VERSION=1.23.4
-ARG NODE_VERSION=20.17.0
-ARG NVM_VERSION=0.40.1
-ARG PYTHON_VERSION=3.10.14
-ARG RUST_VERSION=1.83.0
-ARG STARSHIP_VERSION=1.21.1
-ARG UV_VERSION=0.5.14
+## NODE
+ARG NODE_VER=20.17.0
+## STARSHIP
+ARG STARSHIP_VER=1.21.1
+## RUST
+ARG RUST_VER=1.83.0
+ARG CARGO_WATCH_VER=8.5.3
+ARG JUST_VER=1.40.0
 
-##########      PATHS           ##########
-# PLAYER
-ARG PLAYER_HOME=/home/player
-ARG BASH_ALIASES=${PLAYER_HOME}/.bash_aliases
-ARG LOCAL_BIN=${PLAYER_HOME}/.local/bin
-ARG LOCAL_CONFIG=${PLAYER_HOME}/.config
-ARG LOCAL_TMP=${PLAYER_HOME}/.tmp
-# RUST
-ARG CARGO_DIRECTORY=${PLAYER_HOME}/.cargo
-ARG CARGO_BIN=${CARGO_DIRECTORY}/bin
-ARG RUSTUP_DIRECTORY=${PLAYER_HOME}/.rustup
-ARG STARSHIP_TOML=${PLAYER_HOME}/.config/starship.toml
-# NODE
-ARG NVM_DIRECTORY=${PLAYER_HOME}/.nvm
-# GO
-ARG GO_DIRECTORY=/usr/local/go
+# PATHS
+## HOME
+ARG HOME=/config
+ARG BASHRC=${HOME}/.bashrc
+ARG LOCAL_CONFIG=${HOME}/.config
+ARG LOCAL_BIN=${HOME}/.local/bin
+## USR
+ARG USR_LOCAL=/usr/local
+ARG USR_LOCAL_BIN=${USR_LOCAL}/bin
+ARG USR_LOCAL_LIB=${USR_LOCAL}/lib
+## CODE_SERVER
+ARG CODE_SERVER_BIN=/app/code-server/bin/code-server
+## GO
+ARG GO_DIR=${USR_LOCAL}/go
+## NODE
+ARG NODE_BIN=${USR_LOCAL_BIN}/node
+ARG NPM_BIN=${USR_LOCAL_BIN}/npm
+ARG NPX_BIN=${USR_LOCAL_BIN}/npx
+ARG NODE_MODULES=${USR_LOCAL_LIB}/node_modules
+ARG NODE_MODULES_BIN=${NODE_MODULES}/npm/bin
+## RUST
+ARG CARGO_BIN=${USR_LOCAL}/cargo/bin
+ARG CARGO_DIR=${HOME}/.cargo
+ARG RUSTUP_DIR=${HOME}/.rustup
 
-##########      CONFIG          ##########
-ARG STARSHIP_PRESET=plain-text-symbols
+# BUILD TARGETS
+## UV
+FROM ghcr.io/astral-sh/uv:${UV_VER} AS uv
 
-##########      CARGO BINARIES  ##########
+## GO
+FROM golang:${GO_VERSION} AS go
+
+## NODE
+FROM node:${NODE_VER} AS node
+
+## CARGO
 FROM rust:slim AS cargo
-ARG CARGO_WATCH_VERSION
-RUN cargo install cargo-watch@${CARGO_WATCH_VERSION}
+ARG CARGO_WATCH_VER
+ARG JUST_VER
+RUN cargo install cargo-watch@${CARGO_WATCH_VER} just@${JUST_VER}
 
-##########      Build           ##########
+## BASE
 FROM debian:12-slim AS build
 RUN apt update && apt install --yes curl wget tar
 
-##########      STARSHIP        ##########
+## STARSHIP
 FROM build AS starship
-ARG STARSHIP_VERSION
+ARG STARSHIP_VER
 RUN curl -sS https://starship.rs/install.sh \
     | sh -s -- \
     --yes \
     --bin-dir /root \
-    --version v${STARSHIP_VERSION}
+    --version v${STARSHIP_VER}
 
-##########      UV              ##########
-FROM build AS uv
-ARG UV_VERSION
-RUN curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh
-
-##########      RUST            ##########
+## RUST
 FROM build AS rust
-ARG RUST_VERSION
+ARG RUST_VER
 RUN curl \
     --proto '=https' \
     --tlsv1.2 \
     -sSf https://sh.rustup.rs \
     | sh -s -- \
     -y \
-    --default-toolchain=${RUST_VERSION}
+    --default-toolchain=${RUST_VER}
 
-##########      NODE            ##########
-FROM build AS node
-ARG NODE_VERSION
-ARG NVM_VERSION
-RUN curl -o- \
-    https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh \
-    | bash
-RUN . /root/.nvm/nvm.sh && \
-    nvm install ${NODE_VERSION}
+# RELEASE
+FROM lscr.io/linuxserver/code-server:${CODE_SERVER_VER} AS playground
 
-##########      GO              ##########
-FROM build AS go
-ARG GO_VERSION
-# If you want to include more architectures, you have to add them to the
-# following shell script.
-RUN \
-    if [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "amd64" ]; then \
-        wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz; \
-        tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-amd64.tar.gz; \
-    elif [ "$(uname -m)" = "aarch64" ] || [ "$(uname -m)" = "arm64" ]; then \
-        wget -P /root https://golang.org/dl/go${GO_VERSION}.linux-arm64.tar.gz; \
-        tar -C /usr/local -xzf /root/go${GO_VERSION}.linux-arm64.tar.gz; \
-    else \
-        echo "Unsupported architecture"; \
-        exit 1; \
-    fi
-
-##########      BASE            ##########
-FROM debian:12-slim AS base
-
-# ARGUMENTS
-ARG BASH_ALIASES
+## ARGUMENTS
+ARG BASHRC
 ARG CARGO_BIN
-ARG CARGO_DIRECTORY
-ARG GO_DIRECTORY
-ARG GO_VERSION
+ARG CARGO_DIR
+ARG CODE_SERVER_BIN
+ARG GO_DIR
+ARG HOME
 ARG LOCAL_BIN
 ARG LOCAL_CONFIG
-ARG LOCAL_TMP
-ARG NVM_DIRECTORY
-ARG PLAYER_HOME
-ARG PYTHON_VERSION
-ARG RUST_VERSION
-ARG RUSTUP_DIRECTORY
-ARG STARSHIP_PRESET
-ARG STARSHIP_TOML
+ARG NODE_BIN
+ARG NODE_MODULES
+ARG NODE_MODULES_BIN
+ARG NPM_BIN
+ARG NPX_BIN
+ARG PYTHON_VER
+ARG RUSTUP_DIR
+ARG USR_LOCAL_BIN
 
 # APT
-RUN apt update && apt install --yes \
-    curl \
-    gcc \
-    nano
+RUN apt update && apt install --yes gcc
 
-# CREATE USER
-RUN useradd -ms /bin/bash player
-WORKDIR ${PLAYER_HOME}
-USER player
+## CODE_SERVER
+RUN for extension in \
+    bierner.markdown-mermaid \
+    charliermarsh.ruff \
+    d-biehl.robotcode \
+    golang.go \
+    ms-playwright.playwright \
+    ms-python.python \
+    ms-vscode.live-server \
+    nefrob.vscode-just-syntax \
+    rust-lang.rust-analyzer \
+    streetsidesoftware.code-spell-checker \
+    tamasfe.even-better-toml \
+    vscode-icons-team.vscode-icons; do \
+    ${CODE_SERVER_BIN} \
+    --extensions-dir /config/extensions \
+    --force \
+    --install-extension \
+    $extension; done
 
-# CREATE DIRECTORIES
+## DIRECTORIES
 RUN mkdir --parents \
-    ${CARGO_BIN} \
     ${LOCAL_BIN} \
-    ${LOCAL_CONFIG} \
-    ${LOCAL_TMP}
+    ${LOCAL_CONFIG}
 
-# CREATE FILES
-RUN touch \
-    ${BASH_ALIASES} \
-    ${STARSHIP_TOML}
+## UV
+COPY --from=uv /uv /uvx ${USR_LOCAL_BIN}/
+RUN uv python install ${PYTHON_VER}
 
-# COPY FILES FROM OTHER IMAGES
-COPY --from=starship /root/starship ${LOCAL_BIN}
-COPY --from=uv /root/.local/bin/uv ${LOCAL_BIN}
-COPY --from=uv /root/.local/bin/uvx ${LOCAL_BIN}
-COPY --from=rust /root/.cargo ${CARGO_DIRECTORY}
-COPY --from=rust /root/.rustup ${RUSTUP_DIRECTORY}
-COPY --from=node /root/.nvm ${NVM_DIRECTORY}
-COPY --from=go /usr/local/go ${GO_DIRECTORY}
-COPY --from=cargo /usr/local/cargo/bin/cargo-watch ${LOCAL_BIN}
+## GO
+COPY --from=go ${GO_DIR} ${GO_DIR}
 
-# INSTALL PYTHON
-RUN ${LOCAL_BIN}/uv python install ${PYTHON_VERSION}
+## NODE
+COPY --from=node ${NODE_BIN} ${NPM_BIN} ${NPX_BIN} ${USR_LOCAL_BIN}/
+COPY --from=node ${NODE_MODULES} ${NODE_MODULES}
+RUN ln -sf ${NODE_MODULES_BIN}/npm-cli.js ${NPM_BIN} && \
+    ln -sf ${NODE_MODULES_BIN}/npx-cli.js ${NPX_BIN}
 
-# ADD CLIPPY TO RUSTUP
-RUN ${CARGO_BIN}/rustup component add clippy
+## STARSHIP
+COPY --from=starship /root/starship ${USR_LOCAL_BIN}/
 
-# EDIT STARSHIP CONFIG
-RUN ${LOCAL_BIN}/starship preset ${STARSHIP_PRESET} -o ${STARSHIP_TOML}
+## RUST
+COPY --from=rust /root/.cargo ${CARGO_DIR}
+COPY --from=rust /root/.rustup ${RUSTUP_DIR}
+COPY --from=cargo ${CARGO_BIN}/* ${USR_LOCAL_BIN}/
+ENV CARGO_HOME=${CARGO_DIR}
+ENV RUSTUP_HOME=${RUSTUP_DIR}
 
-# EDIT BASH ALIASES
-RUN echo 'alias ll="ls -la"' >> ${BASH_ALIASES}
-RUN echo 'export PATH="$PATH:$HOME/.local/bin:/usr/local/go/bin"' \
->> ${BASH_ALIASES}
-RUN echo '. "$HOME/.cargo/env"' >> ${BASH_ALIASES}
-RUN echo 'eval "$(starship init bash)"' >> ${BASH_ALIASES}
-RUN echo 'NVM_DIRECTORY="$HOME/.nvm"' >> ${BASH_ALIASES}
-RUN echo 'if [ -d "$NVM_DIRECTORY" ]; then \
-    export NVM_DIR="$NVM_DIRECTORY"; \
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"; \
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"; fi' \
-    >> ${BASH_ALIASES}
+## FILES
+COPY config/starship.toml ${LOCAL_CONFIG}/starship.toml
+COPY config/vsc-settings.json ${HOME}/data/User/settings.json
+COPY config/.bashrc ${HOME}/.bashrc
 
-##########      TEST            ##########
-FROM base AS test
+## PATH
+ENV PATH="$PATH:${USR_LOCAL_BIN}:${CARGO_DIR}/bin:${GO_DIR}/bin:${LOCAL_BIN}"
 
-ARG CARGO_BIN
-ARG GO_DIRECTORY
-ARG LOCAL_BIN
-ARG NODE_VERSION
-ARG NVM_DIRECTORY
-ARG PLAYER_HOME
+# TEST
+FROM playground AS test
 
-RUN ${LOCAL_BIN}/starship help
-RUN ${LOCAL_BIN}/cargo-watch --help
+ARG HOME
+ARG TEST_DIR=${HOME}/test-dir
+RUN mkdir -p ${TEST_DIR}
 
-# PYTHON
-RUN mkdir ${PLAYER_HOME}/python-test
-WORKDIR ${PLAYER_HOME}/python-test
-RUN ${LOCAL_BIN}/uv init
-RUN ${LOCAL_BIN}/uv run hello.py
-RUN ${LOCAL_BIN}/uv add typer
+# CLIENTS
+RUN starship --help
+RUN cargo-watch --help
+RUN just --help
 
-# RUST
-RUN mkdir ${PLAYER_HOME}/rust-test
-WORKDIR ${PLAYER_HOME}/rust-test
-RUN ${CARGO_BIN}/cargo init
-RUN ${CARGO_BIN}/cargo run
-RUN ${CARGO_BIN}/cargo add evdev
+## PYTHON
+RUN mkdir ${TEST_DIR}/python-test
+WORKDIR ${TEST_DIR}/python-test
+RUN uv init
+RUN uv run main.py
+RUN uv add typer
+RUN uvx cowsay -t foobar
 
-# GO
-RUN mkdir ${PLAYER_HOME}/go-test
-WORKDIR ${PLAYER_HOME}/go-test
-RUN ${GO_DIRECTORY}/bin/go mod init hello
+## RUST
+RUN mkdir ${TEST_DIR}/rust-test
+WORKDIR ${TEST_DIR}/rust-test
+RUN cargo init
+RUN cargo run
+RUN cargo add evdev
+
+## GO
+RUN mkdir ${TEST_DIR}/go-test
+WORKDIR ${TEST_DIR}/go-test
+RUN go mod init hello
 RUN echo 'package main; import ("fmt"); func main() { fmt.Println("Hello World!");}' \
     > main.go
-RUN ls -la
-RUN ${GO_DIRECTORY}/bin/go run ./main.go
-RUN ${GO_DIRECTORY}/bin/go get github.com/mattn/go-sqlite3
+RUN go run main.go
+RUN go get github.com/mattn/go-sqlite3
+RUN gofmt -w main.go
 
-# NODE
-RUN mkdir ${PLAYER_HOME}/node-test
-WORKDIR ${PLAYER_HOME}/node-test
+## NODE
+RUN mkdir ${TEST_DIR}/node-test
+WORKDIR ${TEST_DIR}/node-test
 RUN touch main.js
 RUN echo 'console.log("Hello World!");' > main.js
-RUN ${NVM_DIRECTORY}/versions/node/v${NODE_VERSION}/bin/node ./main.js
-
-##########      FINAL STAGE     ##########
-FROM base AS playground
-ENTRYPOINT [ "/bin/bash" ]
+RUN node main.js
+RUN npm install playwright
