@@ -1,16 +1,16 @@
-name: DockerHub playground PROD
+name: DockerHub playground DEV
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Enter Tag name'
-        default: 'latest'
-        required: true
-        type: string
+  push:
+    paths:
+      - .github/workflows/playground.yaml
+      - playground/*
+
+env:
+  REPOSITORY: thenerdlygentleman/playground
 
 jobs:
-  push:
+  build-test-release:
     runs-on: ubuntu-latest
     steps:
       - name: Login to Docker Hub
@@ -28,7 +28,37 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Test the image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./playground
+          file: ./playground/Dockerfile
+          target: test
+          platforms: linux/amd64,linux/arm64
+          push: false
+
+      - name: Push dev tag
+        uses: docker/build-push-action@v6
+        with:
+          context: ./playground
+          file: ./playground/Dockerfile
+          target: playground
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.REPOSITORY }}:dev
+
+      - name: Get Version from file
+        shell: bash
+        run: |
+          grep "^PLAYGROUND=" .versions.env | cut -d '=' -f 2 >> $VERSION
+
+      - name: Set Version as output
+        shell: bash
+        run: |
+          echo $VERSION
+
+      - name: Release playground $VERSION
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }
         uses: docker/build-push-action@v6
         with:
           context: playground
@@ -36,4 +66,4 @@ jobs:
           target: playground
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: thenerdlygentleman/playground:${{ github.event.inputs.tag }}
+          tags: ${{ env.REPOSITORY }}:$VERSION
